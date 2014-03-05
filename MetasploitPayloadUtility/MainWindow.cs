@@ -3,23 +3,27 @@ using System.Linq;
 using Gtk;
 using metasploitsharp;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
+using System.Reflection;
+using System.IO;
 
 public partial class MainWindow: Gtk.Window
 {
 	MetasploitSession _session = null;
 	MetasploitManager _manager = null;
+	CheckButton _encrypted = new CheckButton ("Encrypted?");
 	VBox _main = null;
 	Dictionary<string, object> _payloads = null;
-	List<VBox> _dynamicOptions = new List<VBox>();
-	List<TreeView> _treeViews = new List<TreeView>();
+	List<VBox> _dynamicOptions = new List<VBox> ();
+	List<TreeView> _treeViews = new List<TreeView> ();
 	Notebook _parentNotebook = null;
-	Dictionary<string, Dictionary<string, string>> _newPayloads = new Dictionary<string, Dictionary<string, string>>();
-
+	Dictionary<string, Dictionary<string, object>> _newPayloads = new Dictionary<string, Dictionary<string, object>> ();
+	SymmetricAlgorithm _algorithm = new RijndaelManaged ();
 
 	public MainWindow () : base (Gtk.WindowType.Toplevel)
 	{
-
-		this.Resize(600,100);
+		this.Resize (600, 100);
 
 		_main = new VBox ();
 
@@ -51,15 +55,14 @@ public partial class MainWindow: Gtk.Window
 
 		login.Clicked += (object sender, EventArgs e) => {
 			try {
-				Console.WriteLine("Creating session");
-				_session = new MetasploitSession(userEntry.Text, passEntry.Text, hostEntry.Text);
-				Console.WriteLine("Creating manager and getting current list of payloads");
-				_manager = new MetasploitManager(_session);
-				_payloads = _manager.GetPayloads();
-				BuildWorkspace();
-			}
-			catch (Exception ex) {
-				Console.WriteLine("oh noes, login failed " + ex.ToString());
+				Console.WriteLine ("Creating session");
+				_session = new MetasploitSession (userEntry.Text, passEntry.Text, hostEntry.Text);
+				Console.WriteLine ("Creating manager and getting current list of payloads");
+				_manager = new MetasploitManager (_session);
+				_payloads = _manager.GetPayloads ();
+				BuildWorkspace ();
+			} catch (Exception ex) {
+				Console.WriteLine ("oh noes, login failed " + ex.ToString ());
 			}
 		};
 
@@ -72,7 +75,7 @@ public partial class MainWindow: Gtk.Window
 		this.Add (_main);
 	}
 
-	protected void BuildWorkspace()
+	protected void BuildWorkspace ()
 	{
 		this.Remove (_main);
 		_main = null;
@@ -91,15 +94,98 @@ public partial class MainWindow: Gtk.Window
 
 		HBox buttons = new HBox ();
 
-		buttons.PackStart (new CheckButton ("Encrypted") { TooltipText = "Encrypted payloads will be bruteforced at runtime" }, false, false, 0);
-		buttons.PackEnd (new Button ("Close"), false, false, 10);
-		buttons.PackEnd (new Button ("Generate"), false, false, 10);
+		_encrypted.TooltipText = "Encrypted payloads will be bruteforced at runtime";
+		buttons.PackStart (_encrypted, false, false, 0);
+
+		Button generate = new Button ("Generate");
+
+		generate.Clicked += HandleClicked;
+
+		Button close = new Button ("Close");
+
+		buttons.PackEnd (close, false, false, 10);
+		buttons.PackEnd (generate, false, false, 10);
 		_main.PackStart (buttons, false, false, 0);
 		_main.ShowAll ();
 		this.Add (_main);
 	}
 
-	protected void AddPlatformTab(string friendlyName, string msfPayloadFilter, Notebook parent, string negativeFilter = null, Widget payloadDetails = null)
+	void HandleClicked (object sender, EventArgs e)
+	{
+		string template = string.Empty;
+		Assembly asm = Assembly.GetExecutingAssembly ();
+
+		string rsrc = _encrypted.Active ? "MetasploitPayloadUtility.EncryptedTemplate.txt" : "MetasploitPayloadUtility.GeneralTemplate.txt";
+
+		using (StreamReader rdr = new StreamReader(asm.GetManifestResourceStream(rsrc)))
+			template = rdr.ReadToEnd ();
+
+		string winx64Payload = "payload = new byte[][] {";
+		string winx86Payload = winx64Payload;
+		string linx86Payload = winx86Payload;
+		string linx64Payload = linx86Payload;
+
+		if (!_encrypted.Active) {
+			foreach (var pair in _newPayloads) {
+				pair.Value ["Format"] = "csharp";
+				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
+
+				if (pair.Key.StartsWith ("linux/x86")) {
+					linx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+				} else if (pair.Key.StartsWith ("linux/x64")) {
+					linx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+				} else if (pair.Key.StartsWith ("windows/x64")) {
+					winx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+				} else { /*windows x86*/
+					winx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+				}
+			}
+
+			winx64Payload += "};";
+			winx86Payload += "};";
+			linx64Payload += "};";
+			linx86Payload += "};";
+
+			Console.WriteLine (winx64Payload);
+			Console.WriteLine (winx86Payload);
+			Console.WriteLine (linx64Payload);
+			Console.WriteLine (linx86Payload);
+		} else {
+			foreach (var pair in _newPayloads) {
+				pair.Value ["Format"] = "raw";
+				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
+
+				if (pair.Key.StartsWith ("linux/x86")) {
+					linx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+				} else if (pair.Key.StartsWith ("linux/x64")) {
+					linx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+				} else if (pair.Key.StartsWith ("windows/x64")) {
+					winx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+				} else { /*windows x86*/
+					winx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+				}
+			}
+
+			winx64Payload += "};";
+			winx86Payload += "};";
+			linx64Payload += "};";
+			linx86Payload += "};";
+
+			Console.WriteLine (winx64Payload);
+			Console.WriteLine (winx86Payload);
+			Console.WriteLine (linx64Payload);
+			Console.WriteLine (linx86Payload);
+		}
+
+		template = template.Replace("{{lin64}}", linx64Payload);
+		template = template.Replace("{{lin86}}", linx86Payload);
+		template = template.Replace("{{win64}}", winx64Payload);
+		template = template.Replace("{{win86}}", winx86Payload);
+
+		File.WriteAllText("/tmp/fdsa", template);
+	}
+
+	protected void AddPlatformTab (string friendlyName, string msfPayloadFilter, Notebook parent, string negativeFilter = null, Widget payloadDetails = null)
 	{
 		HBox split = new HBox ();
 
@@ -134,7 +220,6 @@ public partial class MainWindow: Gtk.Window
 		VBox deetsAndButtons = new VBox ();
 		VBox deets = new VBox ();
 
-
 		HBox payloadComboContainer = new HBox ();
 		ComboBox payloadCombo = ComboBox.NewText ();
 		payloadCombo.Changed += OnPayloadChanged;
@@ -146,7 +231,7 @@ public partial class MainWindow: Gtk.Window
 			ps = ps.Where (s => !((string)s).Contains (negativeFilter));
 
 		foreach (var payload in ps.OrderBy(s => s)) 
-			payloadCombo.AppendText (payload.ToString());
+			payloadCombo.AppendText (payload.ToString ());
 
 		payloadComboContainer.PackStart (payloadCombo, false, false, 0);
 
@@ -161,7 +246,8 @@ public partial class MainWindow: Gtk.Window
 		parent.AppendPage (split, new Label (friendlyName));
 	}
 
-	protected void OnPayloadChanged(object o, EventArgs e) {
+	protected void OnPayloadChanged (object o, EventArgs e)
+	{
 		VBox payloadDetails = _dynamicOptions [_parentNotebook.CurrentPage];
 
 		foreach (Widget widget in payloadDetails.Children)
@@ -172,7 +258,7 @@ public partial class MainWindow: Gtk.Window
 
 		Dictionary<string, object> opts = null;
 		if (combo.GetActiveIter (out iter))
-			opts = _manager.GetModuleOptions ("payload", ((ComboBox)o).Model.GetValue (iter, 0).ToString());
+			opts = _manager.GetModuleOptions ("payload", ((ComboBox)o).Model.GetValue (iter, 0).ToString ());
 
 		foreach (var opt in opts) {
 			string optName = opt.Key as string;
@@ -182,27 +268,31 @@ public partial class MainWindow: Gtk.Window
 			string advanced = string.Empty;
 			string evasion = string.Empty;
 			string desc = string.Empty;
+			string enums = string.Empty;
 
 			foreach (var optarg in opt.Value as Dictionary<string, object>) {
 
 				switch (optarg.Key) {
 				case "default":
-					defolt = optarg.Value.ToString();
+					defolt = optarg.Value.ToString ();
 					break;
 				case "type":
 					type = optarg.Value.ToString ();
 					break;
 				case "required":
-					required = optarg.Value.ToString();
+					required = optarg.Value.ToString ();
 					break;
 				case "advanced":
-					advanced = optarg.Value.ToString();
+					advanced = optarg.Value.ToString ();
 					break;
 				case "evasion":
-					evasion = optarg.Value.ToString();
+					evasion = optarg.Value.ToString ();
 					break;
 				case "desc":
-					desc = optarg.Value.ToString();
+					desc = optarg.Value.ToString ();
+					break;
+				case "enums":
+					enums = optarg.Value.ToString ();
 					break;
 				default:
 					throw new Exception ("Don't know option argument: " + optarg.Key);
@@ -214,33 +304,37 @@ public partial class MainWindow: Gtk.Window
 
 		HBox addBox = new HBox ();
 		Button addPayload = new Button ("Add payload");
-		addPayload.Clicked += (object sender, EventArgs es) => {
-			Dictionary<string, string> newopts = new Dictionary<string, string>();
+		addPayload.Clicked += (object sender, EventArgs es) => { 
+			int n = _treeViews [_parentNotebook.CurrentPage].Model.IterNChildren ();
+			Dictionary<string, object> newopts = new Dictionary<string, object> ();
 			foreach (Widget child in _dynamicOptions[_parentNotebook.CurrentPage].Children) {
 				if (child is CheckButton)
-					newopts.Add((child as CheckButton).Label, (child as CheckButton).Active.ToString());
-				else if (child is Entry)
-					newopts.Add((child as Entry).TooltipText, (child as Entry).Text);
+					newopts.Add ((child as CheckButton).Label, (child as CheckButton).Active.ToString ());
+				else if (child is HBox) {
+					foreach (Widget c in (child as HBox).Children) {
+						if (c is Entry)
+							newopts.Add ((c as Entry).TooltipText, (c as Entry).Text);
+					}
+				}
 			}
 
 			TreeIter i; 
-			((ComboBox)o).GetActiveIter(out i);
+			((ComboBox)o).GetActiveIter (out i);
 
-			_newPayloads.Add(((ComboBox)o).Model.GetValue (i, 0).ToString(), newopts);
+			_newPayloads.Add (((ComboBox)o).Model.GetValue (i, 0).ToString (), newopts);
 
-			((ListStore)_treeViews[_parentNotebook.CurrentPage].Model).AppendValues("0", ((ComboBox)o).Model.GetValue (iter, 0).ToString());
+			((ListStore)_treeViews [_parentNotebook.CurrentPage].Model).AppendValues ((n + 1).ToString (), ((ComboBox)o).Model.GetValue (iter, 0).ToString ());
 
-			CellRendererText tx = new CellRendererText();
-			_treeViews[_parentNotebook.CurrentPage].Columns[1].PackStart(tx, true);
-			_treeViews[_parentNotebook.CurrentPage].ShowAll();
-
+			CellRendererText tx = new CellRendererText ();
+			_treeViews [_parentNotebook.CurrentPage].Columns [1].PackStart (tx, true);
+			_treeViews [_parentNotebook.CurrentPage].ShowAll ();
 		};
 		addBox.PackStart (addPayload, false, false, 0);
 		payloadDetails.PackStart (addBox, false, false, 0);
 		payloadDetails.ShowAll ();
 	}
 
-	Widget CreateWidget(string optName, string type, string defolt, string desc) 
+	Widget CreateWidget (string optName, string type, string defolt, string desc)
 	{
 		if (type == "bool") { 
 			CheckButton button = new CheckButton (optName);
@@ -248,7 +342,7 @@ public partial class MainWindow: Gtk.Window
 			if (defolt == "True")
 				button.Activate ();
 			return button;
-		} else if (type == "string" || type == "address" || type == "port" || type == "integer" || type == "raw" || type == "path") {
+		} else if (type == "string" || type == "address" || type == "port" || type == "integer" || type == "raw" || type == "path" || type == "enum") {
 			Entry textbox = new Entry (defolt);
 			textbox.WidthRequest = 150;
 			textbox.TooltipText = optName;
@@ -269,5 +363,42 @@ public partial class MainWindow: Gtk.Window
 	{
 		Application.Quit ();
 		a.RetVal = true;
+	}
+
+	private byte[] EncryptData (byte[] data, string password)
+	{
+		GetKey (password);
+
+		ICryptoTransform encryptor = _algorithm.CreateEncryptor ();
+		byte[] cryptoData = encryptor.TransformFinalBlock (data, 0, data.Length);
+
+		return cryptoData;
+	}
+
+	private void GetKey (string password)
+	{
+		byte[] salt = new byte[8];
+		byte[] passwordBytes = Encoding.ASCII.GetBytes (password);
+		int length = Math.Min (passwordBytes.Length, salt.Length);
+
+		for (int i = 0; i < length; i++)
+			salt [i] = passwordBytes [i];
+
+		Rfc2898DeriveBytes key = new Rfc2898DeriveBytes (password, salt);
+
+		_algorithm.Key = key.GetBytes (_algorithm.KeySize / 8);
+		_algorithm.IV = key.GetBytes (_algorithm.BlockSize / 8);
+	}
+
+	private string GetByteArrayString (byte[] data)
+	{
+		string str = string.Empty;
+		StringBuilder bld = new StringBuilder ();
+		bld.Append ("new byte[] {");
+		foreach (byte b in data)
+			bld.AppendFormat ("0x{0:x2},", b);
+		bld.Append ("},");
+		str = bld.ToString ();
+		return str;
 	}
 }

