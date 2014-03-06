@@ -105,6 +105,9 @@ public partial class MainWindow: Gtk.Window
 		generate.Clicked += HandleClicked;
 
 		Button close = new Button ("Close");
+		close.Clicked += (object sender, EventArgs e) => {
+			Application.Quit ();
+		};
 
 		buttons.PackEnd (close, false, false, 10);
 		buttons.PackEnd (generate, false, false, 10);
