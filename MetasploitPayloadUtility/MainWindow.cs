@@ -194,9 +194,11 @@ public partial class MainWindow: Gtk.Window
 
 		System.Diagnostics.Process process = new System.Diagnostics.Process();
 		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+
 		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
 		startInfo.FileName = "gmcs";
 		startInfo.Arguments = "/tmp/" + uid.ToString();
+
 		process.StartInfo = startInfo;
 		process.Start();
 
@@ -210,6 +212,38 @@ public partial class MainWindow: Gtk.Window
 		HBox split = new HBox ();
 
 		TreeView payloads = new TreeView ();
+		payloads.RowActivated += (object o, RowActivatedArgs args) => {
+			TreeModel model = _treeViews[_parentNotebook.CurrentPage].Model;
+
+			TreeIter iter;
+			model.GetIterFromString(out iter, args.Path.ToString());
+			string str = model.GetValue(iter, 1) as string;
+			VBox deeets = RedrawOptions(_newPayloads[str], true);
+
+			HBox updateButton = new HBox();
+			Button update = new Button("Update payload");
+			update.Clicked += (object sender, EventArgs e) => {
+				int n = _treeViews [_parentNotebook.CurrentPage].Model.IterNChildren ();
+				Dictionary<string, object> newopts = new Dictionary<string, object> ();
+				foreach (Widget child in _dynamicOptions[_parentNotebook.CurrentPage].Children) {
+					if (child is CheckButton)
+						newopts.Add ((child as CheckButton).Label, (child as CheckButton).Active.ToString ());
+					else if (child is HBox) {
+						foreach (Widget c in (child as HBox).Children) {
+							if (c is Entry)
+								newopts.Add ((c as Entry).TooltipText, (c as Entry).Text);
+						}
+					}
+				}
+
+				_newPayloads[str] = newopts;
+			};
+
+			updateButton.PackStart(update, false, false, 0);
+			deeets.PackStart(updateButton, false, false, 0);
+			deeets.ShowAll();
+
+		};
 
 		TreeViewColumn no = new TreeViewColumn ();
 		no.Title = "#";
@@ -268,11 +302,6 @@ public partial class MainWindow: Gtk.Window
 
 	protected void OnPayloadChanged (object o, EventArgs e)
 	{
-		VBox payloadDetails = _dynamicOptions [_parentNotebook.CurrentPage];
-
-		foreach (Widget widget in payloadDetails.Children)
-			payloadDetails.Remove (widget);
-
 		ComboBox combo = (ComboBox)o;
 		TreeIter iter;
 
@@ -280,50 +309,11 @@ public partial class MainWindow: Gtk.Window
 		if (combo.GetActiveIter (out iter))
 			opts = _manager.GetModuleOptions ("payload", ((ComboBox)o).Model.GetValue (iter, 0).ToString ());
 
-		foreach (var opt in opts) {
-			string optName = opt.Key as string;
-			string type = string.Empty;
-			string defolt = string.Empty;
-			string required = string.Empty;
-			string advanced = string.Empty;
-			string evasion = string.Empty;
-			string desc = string.Empty;
-			string enums = string.Empty;
-
-			foreach (var optarg in opt.Value as Dictionary<string, object>) {
-
-				switch (optarg.Key) {
-				case "default":
-					defolt = optarg.Value.ToString ();
-					break;
-				case "type":
-					type = optarg.Value.ToString ();
-					break;
-				case "required":
-					required = optarg.Value.ToString ();
-					break;
-				case "advanced":
-					advanced = optarg.Value.ToString ();
-					break;
-				case "evasion":
-					evasion = optarg.Value.ToString ();
-					break;
-				case "desc":
-					desc = optarg.Value.ToString ();
-					break;
-				case "enums":
-					enums = optarg.Value.ToString ();
-					break;
-				default:
-					throw new Exception ("Don't know option argument: " + optarg.Key);
-				}
-			}
-
-			payloadDetails.PackStart (CreateWidget (optName, type, defolt, desc), false, false, 0);
-		}
-
+		VBox payloadDetails = RedrawOptions (opts, false);
+		
 		HBox addBox = new HBox ();
 		Button addPayload = new Button ("Add payload");
+
 		addPayload.Clicked += (object sender, EventArgs es) => { 
 			int n = _treeViews [_parentNotebook.CurrentPage].Model.IterNChildren ();
 			Dictionary<string, object> newopts = new Dictionary<string, object> ();
@@ -343,15 +333,74 @@ public partial class MainWindow: Gtk.Window
 
 			_newPayloads.Add (((ComboBox)o).Model.GetValue (i, 0).ToString (), newopts);
 
-			((ListStore)_treeViews [_parentNotebook.CurrentPage].Model).AppendValues ((n + 1).ToString (), ((ComboBox)o).Model.GetValue (iter, 0).ToString ());
+			((ListStore)_treeViews [_parentNotebook.CurrentPage].Model).AppendValues ((n + 1).ToString (), ((ComboBox)o).Model.GetValue (i, 0).ToString ());
 
 			CellRendererText tx = new CellRendererText ();
 			_treeViews [_parentNotebook.CurrentPage].Columns [1].PackStart (tx, true);
 			_treeViews [_parentNotebook.CurrentPage].ShowAll ();
 		};
+
 		addBox.PackStart (addPayload, false, false, 0);
 		payloadDetails.PackStart (addBox, false, false, 0);
 		payloadDetails.ShowAll ();
+	}
+
+	protected VBox RedrawOptions(Dictionary<string, object> opts, bool mine) {
+		VBox payloadDetails = _dynamicOptions [_parentNotebook.CurrentPage];
+
+		foreach (Widget widget in payloadDetails.Children)
+			payloadDetails.Remove (widget);
+
+		if (!mine) {
+			foreach (var opt in opts) {
+				string optName = opt.Key as string;
+				string type = string.Empty;
+				string defolt = string.Empty;
+				string required = string.Empty;
+				string advanced = string.Empty;
+				string evasion = string.Empty;
+				string desc = string.Empty;
+				string enums = string.Empty;
+
+				foreach (var optarg in opt.Value as Dictionary<string, object>) {
+
+					switch (optarg.Key) {
+					case "default":
+						defolt = optarg.Value.ToString ();
+						break;
+					case "type":
+						type = optarg.Value.ToString ();
+						break;
+					case "required":
+						required = optarg.Value.ToString ();
+						break;
+					case "advanced":
+						advanced = optarg.Value.ToString ();
+						break;
+					case "evasion":
+						evasion = optarg.Value.ToString ();
+						break;
+					case "desc":
+						desc = optarg.Value.ToString ();
+						break;
+					case "enums":
+						enums = optarg.Value.ToString ();
+						break;
+					default:
+						throw new Exception ("Don't know option argument: " + optarg.Key);
+					}
+				}
+
+				payloadDetails.PackStart (CreateWidget (optName, type, defolt, desc), false, false, 0);
+			}
+		} else {
+			foreach (var opt in opts) {
+				bool wut;
+				payloadDetails.PackStart(CreateWidget(opt.Key, (bool.TryParse(opt.Value.ToString(), out wut) ? "bool" : "string"), opt.Value as string, ""), false, false, 0);
+			}
+		}
+
+		return payloadDetails;
 	}
 
 	Widget CreateWidget (string optName, string type, string defolt, string desc)
@@ -359,8 +408,8 @@ public partial class MainWindow: Gtk.Window
 		if (type == "bool") { 
 			CheckButton button = new CheckButton (optName);
 			button.TooltipText = desc;
-			if (defolt == "True")
-				button.Activate ();
+			if (defolt.ToLower () == "true")
+				button.Active = true;
 			return button;
 		} else if (type == "string" || type == "address" || type == "port" || type == "integer" || type == "raw" || type == "path" || type == "enum") {
 			Entry textbox = new Entry (defolt);
