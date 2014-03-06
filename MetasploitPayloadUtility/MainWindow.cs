@@ -185,7 +185,21 @@ public partial class MainWindow: Gtk.Window
 		template = template.Replace("{{win64}}", winx64Payload);
 		template = template.Replace("{{win86}}", winx86Payload);
 
-		File.WriteAllText("/tmp/fdsa", template);
+		Guid uid = Guid.NewGuid ();
+
+		File.WriteAllText("/tmp/" + uid.ToString(), template);
+
+		System.Diagnostics.Process process = new System.Diagnostics.Process();
+		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+		startInfo.FileName = "gmcs";
+		startInfo.Arguments = "/tmp/" + uid.ToString();
+		process.StartInfo = startInfo;
+		process.Start();
+
+		process.WaitForExit ();
+
+		Console.WriteLine ("Your executable is located at: /tmp/" + uid.ToString () + ".exe");
 	}
 
 	protected void AddPlatformTab (string friendlyName, string msfPayloadFilter, Notebook parent, string negativeFilter = null, Widget payloadDetails = null)
