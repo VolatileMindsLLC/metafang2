@@ -5,6 +5,6 @@ Interfaces with a Metasploit RPC instance to generate .NET executables that run 
 
 Log in to the msfrpcd instance with a url like "https://127.0.0.1:55553/api", and the credentials set up when starting msfrpcd.
 
-Under active development.
+Under active development. Requires metasploit-sharp (http://github.com/brandonprry/metasploit-sharp/) and msgpack-cli (either MsgPack.Mono or MsgPack).
 
-Currently, shell code run on linux will be blocked by SELinux. Will eventually look into implementing something like this: http://www.akkadia.org/drepper/selinux-mem.html
+Currently, shell code run on some linux will be blocked by SELinux. Will eventually look into implementing something like this: http://www.akkadia.org/drepper/selinux-mem.html
