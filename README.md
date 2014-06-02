@@ -11,4 +11,4 @@ Under active development. Requires metasploit-sharp (http://github.com/brandonpr
 
 Currently, shell code run on some linux will be blocked by SELinux. Will eventually look into implementing something like this: http://www.akkadia.org/drepper/selinux-mem.html
 
-Something else to look at in the future is Mono.CSharp to run the payloads. This allows us to store the payloads in one more abstract level up than the pure bytes they currently get compiled down to. This, however, would place a direct dependency on Mono. Another option is to merge the mono.CSharp library into the generated executable, but this is 80mb large.
+It is expected that 'gmcs' is in your PATH in order to compile the C# code that is generated. At some point, research into Mono.Csharp should be done, but this library was really built for REPL and not on the fly compilation. 
