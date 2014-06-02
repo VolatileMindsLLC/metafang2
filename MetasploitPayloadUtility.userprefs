@@ -1,6 +1,14 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench />
+  <MonoDevelop.Ide.Workbench ActiveDocument="MetasploitPayloadUtility/EncryptedTemplate.txt">
+    <Files>
+      <File FileName="MetasploitPayloadUtility/Program.cs" Line="9" Column="4" />
+      <File FileName="README.md" Line="4" Column="54" />
+      <File FileName="MetasploitPayloadUtility/MainWindow.cs" Line="232" Column="70" />
+      <File FileName="MetasploitPayloadUtility/GeneralTemplate.txt" Line="50" Column="15" />
+      <File FileName="MetasploitPayloadUtility/EncryptedTemplate.txt" Line="37" Column="40" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>

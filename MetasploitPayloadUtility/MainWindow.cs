@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Mono.CSharp;
 using Gtk;
 using metasploitsharp;
 using System.Collections.Generic;
@@ -20,12 +21,12 @@ public partial class MainWindow: Gtk.Window
 	Notebook _parentNotebook = null;
 	Dictionary<string, Dictionary<string, object>> _newPayloads = new Dictionary<string, Dictionary<string, object>> ();
 	SymmetricAlgorithm _algorithm = new RijndaelManaged ();
-	Random _random = new Random();
+	Random _random = new Random ();
 
 	public MainWindow () : base (Gtk.WindowType.Toplevel)
 	{
 		this.Resize (600, 100);
-
+		this.Title = "metafang";
 		_main = new VBox ();
 
 		HBox title = new HBox ();
@@ -56,14 +57,20 @@ public partial class MainWindow: Gtk.Window
 
 		login.Clicked += (object sender, EventArgs e) => {
 			try {
-				Console.WriteLine ("Creating session");
+				//Console.WriteLine ("Creating session");
 				_session = new MetasploitSession (userEntry.Text, passEntry.Text, hostEntry.Text);
-				Console.WriteLine ("Creating manager and getting current list of payloads");
+				//Console.WriteLine ("Creating manager and getting current list of payloads");
 				_manager = new MetasploitManager (_session);
 				_payloads = _manager.GetPayloads ();
 				BuildWorkspace ();
-			} catch (Exception ex) {
-				Console.WriteLine ("oh noes, login failed " + ex.ToString ());
+			} catch {
+				MessageDialog md = new MessageDialog (this, 
+					                   DialogFlags.DestroyWithParent,
+					                   MessageType.Error, 
+					ButtonsType.Close, "Authentication failed. Please ensure your credentials and API URL are correct.");
+
+				md.Run ();
+				md.Destroy ();
 			}
 		};
 
@@ -90,8 +97,8 @@ public partial class MainWindow: Gtk.Window
 		AddPlatformTab ("Linux x86-64", "linux/x64", _parentNotebook);
 		AddPlatformTab ("Windows x86", "windows", _parentNotebook, "x64");
 		AddPlatformTab ("Windows x86-64", "windows/x64", _parentNotebook);
-		AddPlatformTab ("OSX x86", "osx/x86", _parentNotebook);
-		AddPlatformTab ("OSX x86-64", "osx/x64", _parentNotebook);
+		//AddPlatformTab ("OSX x86", "osx/x86", _parentNotebook);
+		//AddPlatformTab ("OSX x86-64", "osx/x64", _parentNotebook);
 
 		_main.PackStart (_parentNotebook, false, false, 10);
 
@@ -123,7 +130,7 @@ public partial class MainWindow: Gtk.Window
 
 		string rsrc = _encrypted.Active ? "MetasploitPayloadUtility.EncryptedTemplate.txt" : "MetasploitPayloadUtility.GeneralTemplate.txt";
 
-		using (StreamReader rdr = new StreamReader(asm.GetManifestResourceStream(rsrc)))
+		using (StreamReader rdr = new StreamReader (asm.GetManifestResourceStream (rsrc)))
 			template = rdr.ReadToEnd ();
 
 		string winx64Payload = "payload = new byte[][] {";
@@ -131,129 +138,167 @@ public partial class MainWindow: Gtk.Window
 		string linx86Payload = winx86Payload;
 		string linx64Payload = linx86Payload;
 
+		MessageDialog md;
+		try {
+			if (!_encrypted.Active) {
+				foreach (var pair in _newPayloads) {
+					pair.Value ["Format"] = "csharp";
+					var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
 
-		if (!_encrypted.Active) {
-			foreach (var pair in _newPayloads) {
-				pair.Value ["Format"] = "csharp";
-				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
+					if (response.Count == 6) {
+						md = new MessageDialog (this, 
+							DialogFlags.DestroyWithParent,
+							MessageType.Warning, 
+							ButtonsType.Close, "Generating payload failed.\n\n" + response["error_message"]);
+					
+						md.Run ();
+						md.Destroy ();
+						return;
+					}
 
-				if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith("osx/x86")) {
-					linx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
-				} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith("osx/x64")) {
-					linx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
-				} else if (pair.Key.StartsWith ("windows/x64")) {
-					winx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
-				} else { /*windows x86*/
-					winx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+					if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith ("osx/x86")) {
+						linx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+					} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith ("osx/x64")) {
+						linx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+					} else if (pair.Key.StartsWith ("windows/x64")) {
+						winx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+					} else { /*windows x86*/
+						winx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+					}
 				}
-			}
 
-			winx64Payload += "};";
-			winx86Payload += "};";
-			linx64Payload += "};";
-			linx86Payload += "};";
+				winx64Payload += "};";
+				winx86Payload += "};";
+				linx64Payload += "};";
+				linx86Payload += "};";
 
-			Console.WriteLine (winx64Payload);
-			Console.WriteLine (winx86Payload);
-			Console.WriteLine (linx64Payload);
-			Console.WriteLine (linx86Payload);
+				//Console.WriteLine (winx64Payload);
+				//Console.WriteLine (winx86Payload);
+				//Console.WriteLine (linx64Payload);
+				//Console.WriteLine (linx86Payload);
 
-		} else {
+			} else {
 
-			byte[] parity = new byte[4];
-			for (int i = 0; i < 4; i++)
-				parity[i] = Convert.ToByte(Convert.ToInt32(Math.Floor(26 * _random.NextDouble() + 65))); 
+				byte[] parity = new byte[4];
+				for (int i = 0; i < 4; i++)
+					parity [i] = Convert.ToByte (Convert.ToInt32 (Math.Floor (26 * _random.NextDouble () + 65))); 
 
-			foreach (var pair in _newPayloads) {
-				pair.Value ["Format"] = "raw";
-				var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
+				foreach (var pair in _newPayloads) {
+					pair.Value ["Format"] = "raw";
+					var response = _manager.ExecuteModule ("payload", pair.Key, pair.Value);
 
-				if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith("osx/x86")) {
-					byte[] b = response ["payload"] as byte[];
-					byte[] encb = new byte[b.Length+4];
-					encb [0] = parity [0];
-					encb [1] = parity [1];
-					encb [2] = parity [2];
-					encb [3] = parity [3];
+					if (response.Count == 6) {
+						md = new MessageDialog (this, 
+							DialogFlags.DestroyWithParent,
+							MessageType.Warning, 
+							ButtonsType.Close, "Generating payload failed.\n\n" + response["error_message"]);
 
-					for (int i = 4; i < b.Length; i++) 
-						encb [i] = b [i - 4];
+						md.Run ();
+						md.Destroy ();
+						return;
+					}
 
-					linx86Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
-				} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith("osx/x64")) {
-					byte[] b = response ["payload"] as byte[];
-					byte[] encb = new byte[b.Length+4];
-					encb [0] = parity [0];
-					encb [1] = parity [1];
-					encb [2] = parity [2];
-					encb [3] = parity [3];
+					if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith ("osx/x86")) {
+						byte[] b = response ["payload"] as byte[];
+						byte[] encb = new byte[b.Length + 4];
+						encb [0] = parity [0];
+						encb [1] = parity [1];
+						encb [2] = parity [2];
+						encb [3] = parity [3];
 
-					for (int i = 4; i < b.Length; i++) 
-						encb [i] = b [i - 4];
-					linx64Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
-				} else if (pair.Key.StartsWith ("windows/x64")) {
-					byte[] b = response ["payload"] as byte[];
-					byte[] encb = new byte[b.Length+4];
-					encb [0] = parity [0];
-					encb [1] = parity [1];
-					encb [2] = parity [2];
-					encb [3] = parity [3];
+						for (int i = 4; i < b.Length; i++)
+							encb [i] = b [i - 4];
 
-					for (int i = 4; i < b.Length; i++) 
-						encb [i] = b [i - 4];
-					winx64Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
-				} else { /*windows x86*/
-					byte[] b = response ["payload"] as byte[];
-					byte[] encb = new byte[b.Length+4];
-					encb [0] = parity [0];
-					encb [1] = parity [1];
-					encb [2] = parity [2];
-					encb [3] = parity [3];
+						linx86Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+					} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith ("osx/x64")) {
+						byte[] b = response ["payload"] as byte[];
+						byte[] encb = new byte[b.Length + 4];
+						encb [0] = parity [0];
+						encb [1] = parity [1];
+						encb [2] = parity [2];
+						encb [3] = parity [3];
 
-					for (int i = 4; i < b.Length; i++) 
-						encb [i] = b [i - 4];
-					winx86Payload += GetByteArrayString (EncryptData (encb, _random.Next(1023).ToString()));
+						for (int i = 4; i < b.Length; i++)
+							encb [i] = b [i - 4];
+						linx64Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+					} else if (pair.Key.StartsWith ("windows/x64")) {
+						byte[] b = response ["payload"] as byte[];
+						byte[] encb = new byte[b.Length + 4];
+						encb [0] = parity [0];
+						encb [1] = parity [1];
+						encb [2] = parity [2];
+						encb [3] = parity [3];
+
+						for (int i = 4; i < b.Length; i++)
+							encb [i] = b [i - 4];
+						winx64Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+					} else { /*windows x86*/
+						byte[] b = response ["payload"] as byte[];
+						byte[] encb = new byte[b.Length + 4];
+						encb [0] = parity [0];
+						encb [1] = parity [1];
+						encb [2] = parity [2];
+						encb [3] = parity [3];
+
+						for (int i = 4; i < b.Length; i++)
+							encb [i] = b [i - 4];
+						winx86Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+					}
 				}
+
+				winx64Payload += "};";
+				winx86Payload += "};";
+				linx64Payload += "};";
+				linx86Payload += "};";
+
+				//Console.WriteLine (winx64Payload);
+				//Console.WriteLine (winx86Payload);
+				//Console.WriteLine (linx64Payload);
+				//Console.WriteLine (linx86Payload);
+
+
+				string par = GetByteArrayString (parity);
+
+				template = template.Replace ("{{parity}}", par.Remove (par.Length - 1));
 			}
+		} catch {
+			md = new MessageDialog (this, 
+				DialogFlags.DestroyWithParent,
+				MessageType.Warning, 
+				ButtonsType.Close, "Generating payload failed.\n\nPlease ensure all required (*) options are present and valid.\n\nIf you are sure options are correct, please file a bug.");
 
-			winx64Payload += "};";
-			winx86Payload += "};";
-			linx64Payload += "};";
-			linx86Payload += "};";
-
-			Console.WriteLine (winx64Payload);
-			Console.WriteLine (winx86Payload);
-			Console.WriteLine (linx64Payload);
-			Console.WriteLine (linx86Payload);
-
-
-			string par =  GetByteArrayString (parity);
-
-			template = template.Replace("{{parity}}", par.Remove(par.Length-1));
+			md.Run ();
+			md.Destroy ();
 		}
 
-		template = template.Replace("{{lin64}}", linx64Payload);
-		template = template.Replace("{{lin86}}", linx86Payload);
-		template = template.Replace("{{win64}}", winx64Payload);
-		template = template.Replace("{{win86}}", winx86Payload);
+		template = template.Replace ("{{lin64}}", linx64Payload);
+		template = template.Replace ("{{lin86}}", linx86Payload);
+		template = template.Replace ("{{win64}}", winx64Payload);
+		template = template.Replace ("{{win86}}", winx86Payload);
 
 		Guid uid = Guid.NewGuid ();
 
-		File.WriteAllText("/tmp/" + uid.ToString(), template);
+		File.WriteAllText (System.IO.Path.GetTempPath () + System.IO.Path.PathSeparator + uid.ToString (), template);
 
-		System.Diagnostics.Process process = new System.Diagnostics.Process();
-		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+		System.Diagnostics.Process process = new System.Diagnostics.Process ();
+		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo ();
 
 		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
 		startInfo.FileName = "gmcs";
-		startInfo.Arguments = "/tmp/" + uid.ToString();
+		startInfo.Arguments = System.IO.Path.GetTempPath () + System.IO.Path.PathSeparator + uid.ToString ();
 
 		process.StartInfo = startInfo;
-		process.Start();
+		process.Start ();
 
 		process.WaitForExit ();
 
-		Console.WriteLine ("Your executable is located at: /tmp/" + uid.ToString () + ".exe");
+		md = new MessageDialog (this, 
+			DialogFlags.DestroyWithParent,
+			MessageType.Warning, 
+			ButtonsType.Close, "Your binary is located at: " + System.IO.Path.GetTempPath () + System.IO.Path.PathSeparator + uid.ToString () + ".exe");
+
+		md.Run ();
+		md.Destroy ();
 	}
 
 	protected void AddPlatformTab (string friendlyName, string msfPayloadFilter, Notebook parent, string negativeFilter = null, Widget payloadDetails = null)
@@ -262,17 +307,16 @@ public partial class MainWindow: Gtk.Window
 
 		TreeView payloads = new TreeView ();
 		payloads.RowActivated += (object o, RowActivatedArgs args) => {
-			TreeModel model = _treeViews[_parentNotebook.CurrentPage].Model;
+			TreeModel model = _treeViews [_parentNotebook.CurrentPage].Model;
 
 			TreeIter iter;
-			model.GetIterFromString(out iter, args.Path.ToString());
-			string str = model.GetValue(iter, 1) as string;
-			VBox deeets = RedrawOptions(_newPayloads[str], true);
+			model.GetIterFromString (out iter, args.Path.ToString ());
+			string str = model.GetValue (iter, 1) as string;
+			VBox deeets = RedrawOptions (_newPayloads [str], true);
 
-			HBox updateButton = new HBox();
-			Button update = new Button("Update payload");
+			HBox updateButton = new HBox ();
+			Button update = new Button ("Update payload");
 			update.Clicked += (object sender, EventArgs e) => {
-				int n = _treeViews [_parentNotebook.CurrentPage].Model.IterNChildren ();
 				Dictionary<string, object> newopts = new Dictionary<string, object> ();
 				foreach (Widget child in _dynamicOptions[_parentNotebook.CurrentPage].Children) {
 					if (child is CheckButton)
@@ -285,12 +329,12 @@ public partial class MainWindow: Gtk.Window
 					}
 				}
 
-				_newPayloads[str] = newopts;
+				_newPayloads [str] = newopts;
 			};
 
-			updateButton.PackStart(update, false, false, 0);
-			deeets.PackStart(updateButton, false, false, 0);
-			deeets.ShowAll();
+			updateButton.PackStart (update, false, false, 0);
+			deeets.PackStart (updateButton, false, false, 0);
+			deeets.ShowAll ();
 
 		};
 
@@ -333,7 +377,7 @@ public partial class MainWindow: Gtk.Window
 		if (negativeFilter != null)
 			ps = ps.Where (s => !((string)s).Contains (negativeFilter));
 
-		foreach (var payload in ps.OrderBy(s => s)) 
+		foreach (var payload in ps.OrderBy(s => s))
 			payloadCombo.AppendText (payload.ToString ());
 
 		payloadComboContainer.PackStart (payloadCombo, false, false, 0);
@@ -394,7 +438,8 @@ public partial class MainWindow: Gtk.Window
 		payloadDetails.ShowAll ();
 	}
 
-	protected VBox RedrawOptions(Dictionary<string, object> opts, bool mine) {
+	protected VBox RedrawOptions (Dictionary<string, object> opts, bool mine)
+	{
 		VBox payloadDetails = _dynamicOptions [_parentNotebook.CurrentPage];
 
 		foreach (Widget widget in payloadDetails.Children)
@@ -405,7 +450,7 @@ public partial class MainWindow: Gtk.Window
 				string optName = opt.Key as string;
 				string type = string.Empty;
 				string defolt = string.Empty;
-				string required = string.Empty;
+				bool required = false;
 				string advanced = string.Empty;
 				string evasion = string.Empty;
 				string desc = string.Empty;
@@ -421,7 +466,7 @@ public partial class MainWindow: Gtk.Window
 						type = optarg.Value.ToString ();
 						break;
 					case "required":
-						required = optarg.Value.ToString ();
+						required = bool.Parse (optarg.Value.ToString ());
 						break;
 					case "advanced":
 						advanced = optarg.Value.ToString ();
@@ -436,23 +481,30 @@ public partial class MainWindow: Gtk.Window
 						enums = optarg.Value.ToString ();
 						break;
 					default:
-						throw new Exception ("Don't know option argument: " + optarg.Key);
+						MessageDialog md = new MessageDialog (this, 
+							                   DialogFlags.DestroyWithParent,
+							                   MessageType.Warning, 
+							                   ButtonsType.Close, "Don't know argument: " + optarg.Key + ". Please file a bug report with this information.");
+
+						md.Run ();
+						md.Destroy ();
+						break;
 					}
 				}
 
-				payloadDetails.PackStart (CreateWidget (optName, type, defolt, desc), false, false, 0);
+				payloadDetails.PackStart (CreateWidget (optName, type, defolt, desc, advanced == string.Empty), false, false, 0);
 			}
 		} else {
 			foreach (var opt in opts) {
 				bool wut;
-				payloadDetails.PackStart(CreateWidget(opt.Key, (bool.TryParse(opt.Value.ToString(), out wut) ? "bool" : "string"), opt.Value as string, ""), false, false, 0);
+				payloadDetails.PackStart (CreateWidget (opt.Key, (bool.TryParse (opt.Value.ToString (), out wut) ? "bool" : "string"), opt.Value as string, "", false), false, false, 0);
 			}
 		}
 
 		return payloadDetails;
 	}
 
-	Widget CreateWidget (string optName, string type, string defolt, string desc)
+	Widget CreateWidget (string optName, string type, string defolt, string desc, bool required)
 	{
 		if (type == "bool") { 
 			CheckButton button = new CheckButton (optName);
@@ -465,7 +517,7 @@ public partial class MainWindow: Gtk.Window
 			textbox.WidthRequest = 150;
 			textbox.TooltipText = optName;
 			HBox box = new HBox ();
-			Label optNameLabel = new Label (optName);
+			Label optNameLabel = new Label (optName + " *");
 			optNameLabel.TooltipText = desc;
 			optNameLabel.SetAlignment (0f, 0.5f);
 			optNameLabel.WidthRequest = 200;
@@ -473,8 +525,16 @@ public partial class MainWindow: Gtk.Window
 			box.PackStart (textbox, false, false, 10);
 
 			return box;
-		} else
-			throw new Exception ("WTF IS " + type);
+		} else {
+			MessageDialog md = new MessageDialog (this, 
+				                   DialogFlags.DestroyWithParent,
+				                   MessageType.Warning, 
+				                   ButtonsType.Close, "Don't know type: " + type + ". Please file a bug report with this information.");
+
+			md.Run ();
+			md.Destroy ();
+			return null;
+		}
 	}
 
 	protected void OnDeleteEvent (object sender, DeleteEventArgs a)
