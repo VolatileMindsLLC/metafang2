@@ -12,9 +12,7 @@ namespace MetasploitPayload
 		{
 			OperatingSystem os = Environment.OSVersion;
 			bool x86 = IntPtr.Size == 4;
-			byte[][] payload;
-
-			Console.WriteLine(os.Platform.ToString());
+			byte[][] payload
 
 			if (args.Length == 0) {
 				Process prc = Process.GetCurrentProcess();

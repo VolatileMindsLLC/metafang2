@@ -105,7 +105,7 @@ public partial class MainWindow: Gtk.Window
 		HBox buttons = new HBox ();
 
 		_encrypted.TooltipText = "Encrypted payloads will be bruteforced at runtime";
-		buttons.PackStart (_encrypted, false, false, 0);
+		//buttons.PackStart (_encrypted, false, false, 0);
 
 		Button generate = new Button ("Generate");
 
@@ -278,14 +278,14 @@ public partial class MainWindow: Gtk.Window
 
 		Guid uid = Guid.NewGuid ();
 
-		File.WriteAllText (System.IO.Path.GetTempPath () + System.IO.Path.PathSeparator + uid.ToString (), template);
+		File.WriteAllText (System.IO.Path.GetTempPath () + uid.ToString (), template);
 
 		System.Diagnostics.Process process = new System.Diagnostics.Process ();
 		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo ();
 
 		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
 		startInfo.FileName = "gmcs";
-		startInfo.Arguments = System.IO.Path.GetTempPath () + System.IO.Path.PathSeparator + uid.ToString ();
+		startInfo.Arguments = System.IO.Path.GetTempPath () + uid.ToString ();
 
 		process.StartInfo = startInfo;
 		process.Start ();
@@ -295,7 +295,7 @@ public partial class MainWindow: Gtk.Window
 		md = new MessageDialog (this, 
 			DialogFlags.DestroyWithParent,
 			MessageType.Warning, 
-			ButtonsType.Close, "Your binary is located at: " + System.IO.Path.GetTempPath () + System.IO.Path.PathSeparator + uid.ToString () + ".exe");
+			ButtonsType.Close, "Your binary is located at: " + System.IO.Path.GetTempPath () + uid.ToString () + ".exe");
 
 		md.Run ();
 		md.Destroy ();
@@ -317,14 +317,17 @@ public partial class MainWindow: Gtk.Window
 			HBox updateButton = new HBox ();
 			Button update = new Button ("Update payload");
 			update.Clicked += (object sender, EventArgs e) => {
+
 				Dictionary<string, object> newopts = new Dictionary<string, object> ();
 				foreach (Widget child in _dynamicOptions[_parentNotebook.CurrentPage].Children) {
-					if (child is CheckButton)
+					if (child is CheckButton) {
 						newopts.Add ((child as CheckButton).Label, (child as CheckButton).Active.ToString ());
+					}
 					else if (child is HBox) {
 						foreach (Widget c in (child as HBox).Children) {
-							if (c is Entry)
+							if (c is Entry) {
 								newopts.Add ((c as Entry).TooltipText, (c as Entry).Text);
+							}
 						}
 					}
 				}
@@ -408,6 +411,21 @@ public partial class MainWindow: Gtk.Window
 		Button addPayload = new Button ("Add payload");
 
 		addPayload.Clicked += (object sender, EventArgs es) => { 
+			TreeIter i; 
+			((ComboBox)o).GetActiveIter (out i);
+
+			if (_newPayloads.ContainsKey(((ComboBox)o).Model.GetValue (i, 0).ToString ())) {
+
+				MessageDialog md = new MessageDialog (this, 
+					DialogFlags.DestroyWithParent,
+					MessageType.Warning, 
+					ButtonsType.Close, "Currently support only one of each type of payload.\n\nMultiple payloads of the same type will be supported in the future.");
+
+				md.Run ();
+				md.Destroy ();
+				return;
+			}
+
 			int n = _treeViews [_parentNotebook.CurrentPage].Model.IterNChildren ();
 			Dictionary<string, object> newopts = new Dictionary<string, object> ();
 			foreach (Widget child in _dynamicOptions[_parentNotebook.CurrentPage].Children) {
@@ -420,10 +438,7 @@ public partial class MainWindow: Gtk.Window
 					}
 				}
 			}
-
-			TreeIter i; 
-			((ComboBox)o).GetActiveIter (out i);
-
+				
 			_newPayloads.Add (((ComboBox)o).Model.GetValue (i, 0).ToString (), newopts);
 
 			((ListStore)_treeViews [_parentNotebook.CurrentPage].Model).AppendValues ((n + 1).ToString (), ((ComboBox)o).Model.GetValue (i, 0).ToString ());
