@@ -63,7 +63,7 @@ public partial class MainWindow: Gtk.Window
 				_manager = new MetasploitManager (_session);
 				_payloads = _manager.GetPayloads ();
 				BuildWorkspace ();
-			} catch {
+			} catch (Exception ex) {
 				MessageDialog md = new MessageDialog (this, 
 					                   DialogFlags.DestroyWithParent,
 					                   MessageType.Error, 
