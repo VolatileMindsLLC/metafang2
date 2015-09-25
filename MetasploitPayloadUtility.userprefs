@@ -1,16 +1,30 @@
-﻿<Properties>
+﻿<Properties StartupItem="MetasploitPayloadUtility/MetasploitPayloadUtility.csproj" GitUserInfo="UsingMD">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="MetasploitPayloadUtility/EncryptedTemplate.txt">
+  <MonoDevelop.Ide.Workbench ActiveDocument="MetasploitPayloadUtility/MainWindow.cs">
     <Files>
       <File FileName="MetasploitPayloadUtility/Program.cs" Line="9" Column="4" />
       <File FileName="README.md" Line="4" Column="54" />
-      <File FileName="MetasploitPayloadUtility/MainWindow.cs" Line="232" Column="70" />
-      <File FileName="MetasploitPayloadUtility/GeneralTemplate.txt" Line="50" Column="15" />
-      <File FileName="MetasploitPayloadUtility/EncryptedTemplate.txt" Line="37" Column="40" />
+      <File FileName="MetasploitPayloadUtility/MainWindow.cs" Line="42" Column="52" />
+      <File FileName="MetasploitPayloadUtility/GeneralTemplate.txt" Line="50" Column="10" />
+      <File FileName="MetasploitPayloadUtility/EncryptedTemplate.txt" Line="106" Column="8" />
+      <File FileName="../metasploit-sharp/metasploit-sharp/MetasploitSession.cs" Line="173" Column="1" />
+      <File FileName="../metasploit-sharp/metasploit-sharp/MetasploitManager.cs" Line="135" Column="3" />
+      <File FileName="../msgpack-cli/src/MsgPack/MessagePackObject.cs" Line="247" Column="8" />
+      <File FileName="../msgpack-cli/src/MsgPack/MessagePackObject.Utilities.cs" Line="1206" Column="4" />
+      <File FileName="../msgpack-cli/src/MsgPack/MessagePackConvert.cs" Line="107" Column="16" />
+      <File FileName="../msgpack-cli/src/MsgPack/ItemsUnpacker.Unpacking.cs" Line="4757" Column="5" />
+      <File FileName="../msgpack-cli/src/MsgPack/MessagePackCode.cs" Line="155" Column="15" />
+      <File FileName="../msgpack-cli/src/MsgPack/MessagePackString.cs" Line="89" Column="3" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
-    <BreakpointStore />
+    <BreakpointStore>
+      <Breakpoint file="/Users/bperry/projects/metafang2/MetasploitPayloadUtility/MainWindow.cs" line="67" column="1" />
+      <Breakpoint file="/Users/bperry/projects/msgpack-cli/src/MsgPack/MessagePackConvert.cs" line="105" column="32" />
+      <Breakpoint file="/Users/bperry/projects/msgpack-cli/src/MsgPack/ItemsUnpacker.Unpacking.cs" line="4799" column="1" />
+      <Breakpoint file="/Users/bperry/projects/msgpack-cli/src/MsgPack/ItemsUnpacker.Unpacking.cs" line="4840" column="1" />
+      <Breakpoint file="/Users/bperry/projects/metasploit-sharp/metasploit-sharp/MetasploitSession.cs" line="173" column="1" />
+    </BreakpointStore>
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
 </Properties>

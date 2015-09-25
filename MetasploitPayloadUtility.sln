@@ -5,28 +5,53 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetasploitPayloadUtility", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "metasploit-sharp", "..\metasploit-sharp\metasploit-sharp\metasploit-sharp.csproj", "{7406EF69-41DD-467A-90F9-BB34FBC39C0C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MsgPack.Mono", "..\msgpack-cli\src\MsgPack.Mono\MsgPack.Mono.csproj", "{6E8C2296-21E9-4113-89C4-76376516AA14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MsgPack", "..\msgpack-cli\src\MsgPack\MsgPack.csproj", "{5BCEC32E-990E-4DE5-945F-BD27326A7418}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
 		Release|x86 = Release|x86
+		PerformanceTest|Any CPU = PerformanceTest|Any CPU
+		Instrument|Any CPU = Instrument|Any CPU
+		CodeAnalysis|Any CPU = CodeAnalysis|Any CPU
+		CoreProfile|Any CPU = CoreProfile|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.CodeAnalysis|Any CPU.ActiveCfg = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.CodeAnalysis|Any CPU.Build.0 = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.CoreProfile|Any CPU.ActiveCfg = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.CoreProfile|Any CPU.Build.0 = Debug|x86
 		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.Debug|x86.ActiveCfg = Debug|x86
 		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.Debug|x86.Build.0 = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.Instrument|Any CPU.ActiveCfg = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.Instrument|Any CPU.Build.0 = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.PerformanceTest|Any CPU.ActiveCfg = Debug|x86
+		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.PerformanceTest|Any CPU.Build.0 = Debug|x86
 		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.Release|x86.ActiveCfg = Release|x86
 		{21ACEF5A-0C77-4407-924F-F0F5312888DD}.Release|x86.Build.0 = Release|x86
-		{6E8C2296-21E9-4113-89C4-76376516AA14}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{6E8C2296-21E9-4113-89C4-76376516AA14}.Debug|x86.Build.0 = Debug|Any CPU
-		{6E8C2296-21E9-4113-89C4-76376516AA14}.Release|x86.ActiveCfg = Release|Any CPU
-		{6E8C2296-21E9-4113-89C4-76376516AA14}.Release|x86.Build.0 = Release|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.CodeAnalysis|Any CPU.ActiveCfg = CodeAnalysis|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.CodeAnalysis|Any CPU.Build.0 = CodeAnalysis|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.CoreProfile|Any CPU.ActiveCfg = CoreProfile|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.CoreProfile|Any CPU.Build.0 = CoreProfile|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.Debug|x86.Build.0 = Debug|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.Instrument|Any CPU.ActiveCfg = Instrument|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.Instrument|Any CPU.Build.0 = Instrument|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.PerformanceTest|Any CPU.ActiveCfg = PerformanceTest|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.PerformanceTest|Any CPU.Build.0 = PerformanceTest|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.Release|x86.ActiveCfg = Release|Any CPU
+		{5BCEC32E-990E-4DE5-945F-BD27326A7418}.Release|x86.Build.0 = Release|Any CPU
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.CodeAnalysis|Any CPU.ActiveCfg = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.CodeAnalysis|Any CPU.Build.0 = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.CoreProfile|Any CPU.ActiveCfg = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.CoreProfile|Any CPU.Build.0 = Debug|x86
 		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.Debug|x86.ActiveCfg = Debug|x86
 		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.Debug|x86.Build.0 = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.Instrument|Any CPU.ActiveCfg = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.Instrument|Any CPU.Build.0 = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.PerformanceTest|Any CPU.ActiveCfg = Debug|x86
+		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.PerformanceTest|Any CPU.Build.0 = Debug|x86
 		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.Release|x86.ActiveCfg = Release|x86
 		{7406EF69-41DD-467A-90F9-BB34FBC39C0C}.Release|x86.Build.0 = Release|x86
-	EndGlobalSection
-	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = MetasploitPayloadUtility\MetasploitPayloadUtility.csproj
 	EndGlobalSection
 EndGlobal
