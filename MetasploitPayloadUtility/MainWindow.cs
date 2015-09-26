@@ -8,6 +8,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Reflection;
 using System.IO;
+using Microsoft.CSharp;
+using System.CodeDom.Compiler;
 
 public partial class MainWindow: Gtk.Window
 {
@@ -158,14 +160,17 @@ public partial class MainWindow: Gtk.Window
 						return;
 					}
 
+					string payload = System.Text.Encoding.ASCII.GetString(response ["payload"] as byte[])
+						.Split ('=') [1].Replace (";", ",");
+
 					if (pair.Key.StartsWith ("linux/x86") || pair.Key.StartsWith ("osx/x86")) {
-						linx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+						linx86Payload += payload;
 					} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith ("osx/x64")) {
-						linx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+						linx64Payload += payload;
 					} else if (pair.Key.StartsWith ("windows/x64")) {
-						winx64Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+						winx64Payload += payload;
 					} else { /*windows x86*/
-						winx86Payload += (response ["payload"] as string).Split ('=') [1].Replace (";", ",");
+						winx86Payload += payload;
 					}
 				}
 
@@ -270,6 +275,7 @@ public partial class MainWindow: Gtk.Window
 
 			md.Run ();
 			md.Destroy ();
+			return;
 		}
 
 		template = template.Replace ("{{lin64}}", linx64Payload);
@@ -281,17 +287,26 @@ public partial class MainWindow: Gtk.Window
 
 		File.WriteAllText (System.IO.Path.GetTempPath () + uid.ToString (), template);
 
-		System.Diagnostics.Process process = new System.Diagnostics.Process ();
-		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo ();
+		CSharpCodeProvider provider = new CSharpCodeProvider ();
+		ICodeCompiler icc = provider.CreateCompiler ();
 
-		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-		startInfo.FileName = "dmcs";
-		startInfo.Arguments = System.IO.Path.GetTempPath () + uid.ToString ();
+		CompilerParameters parms = new CompilerParameters ();
+		parms.GenerateExecutable = true;
+		parms.OutputAssembly = System.IO.Path.GetTempPath () + uid.ToString () + ".exe";
 
-		process.StartInfo = startInfo;
-		process.Start ();
+		CompilerResults results = icc.CompileAssemblyFromSource (parms, template);
 
-		process.WaitForExit ();
+//		System.Diagnostics.Process process = new System.Diagnostics.Process ();
+//		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo ();
+//
+//		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+//		startInfo.FileName = "dmcs";
+//		startInfo.Arguments = System.IO.Path.GetTempPath () + uid.ToString ();
+//
+//		process.StartInfo = startInfo;
+//		process.Start ();
+//
+//		process.WaitForExit ();
 
 		md = new MessageDialog (this, 
 			DialogFlags.DestroyWithParent,
@@ -300,6 +315,7 @@ public partial class MainWindow: Gtk.Window
 
 		md.Run ();
 		md.Destroy ();
+		return;
 	}
 
 	protected void AddPlatformTab (string friendlyName, string msfPayloadFilter, Notebook parent, string negativeFilter = null, Widget payloadDetails = null)
