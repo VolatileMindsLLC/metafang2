@@ -9,6 +9,4 @@ Requires metasploit-sharp (http://github.com/brandonprry/metasploit-sharp/) and 
 
 Currently, shell code run on some linux will be blocked by SELinux. Will eventually look into implementing something like this: http://www.akkadia.org/drepper/selinux-mem.html
 
-It is expected that 'gmcs' is in your PATH in order to compile the C# code that is generated. At some point, research into Mono.Csharp should be done, but this library was really built for REPL and not on the fly compilation. 
-
 The only official binaries are available on ExploitHub: https://exploithub.com/metafang-2-0-for-linux.html
