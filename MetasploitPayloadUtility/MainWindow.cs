@@ -109,7 +109,7 @@ public partial class MainWindow: Gtk.Window
 		HBox buttons = new HBox ();
 
 		_encrypted.TooltipText = "Encrypted payloads will be bruteforced at runtime";
-		buttons.PackStart (_encrypted, false, false, 0);
+		//buttons.PackStart (_encrypted, false, false, 0);
 
 		Button generate = new Button ("Generate");
 
