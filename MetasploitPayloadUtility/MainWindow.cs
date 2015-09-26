@@ -452,6 +452,8 @@ public partial class MainWindow: Gtk.Window
 		addBox.PackStart (addPayload, false, false, 0);
 		payloadDetails.PackStart (addBox, false, false, 0);
 		payloadDetails.ShowAll ();
+
+		this.Resize (payloadDetails.Allocation.Width + (800-payloadDetails.Allocation.Width), payloadDetails.Allocation.Height + (600-payloadDetails.Allocation.Height));
 	}
 
 	protected VBox RedrawOptions (Dictionary<string, object> opts, bool mine)
