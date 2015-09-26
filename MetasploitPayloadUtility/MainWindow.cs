@@ -285,8 +285,6 @@ public partial class MainWindow: Gtk.Window
 
 		Guid uid = Guid.NewGuid ();
 
-		File.WriteAllText (System.IO.Path.GetTempPath () + uid.ToString (), template);
-
 		CSharpCodeProvider provider = new CSharpCodeProvider ();
 		ICodeCompiler icc = provider.CreateCompiler ();
 
