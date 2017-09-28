@@ -9,4 +9,3 @@ Requires metasploit-sharp (http://github.com/brandonprry/metasploit-sharp/) and 
 
 Currently, shell code run on some linux will be blocked by SELinux. Will eventually look into implementing something like this: http://www.akkadia.org/drepper/selinux-mem.html
 
-The only official binaries are available on ExploitHub: https://exploithub.com/metafang-2-0-for-linux.html
